@@ -4,6 +4,9 @@ sys.path.append("rag")
 
 from store import load_index, search
 
+SOURCE = "Unit-1.pdf"
+
+# (question, correct page in Unit-1.pdf)
 QUESTIONS = [
     ("What is a kernel?", 7),
     ("What is the goal of an operating system?", 3),
@@ -20,12 +23,15 @@ QUESTIONS = [
 chunks, vectors = load_index()
 hits = 0
 
-for question, correct_page in QUESTIONS:
-    results = search(question, chunks, vectors, top_k=3)
-    pages = [r["page"] for r in results]
-    ok = correct_page in pages
+for question, page in QUESTIONS:
+    results = search(question, chunks, vectors, top_k=5)
+    ok = any(
+        r["source"] == SOURCE and r["page_start"] <= page <= r["page_end"]
+        for r in results
+    )
     hits += ok
     print(("OK   " if ok else "MISS ") + question)
-    print("     expected page", correct_page, "| got pages", pages)
+    print("     expected", SOURCE, "p" + str(page), "| got",
+          [f"{r['source'][:12]} p{r['page_start']}-{r['page_end']}" for r in results])
 
-print(f"\nRetrieval hit rate: {hits}/{len(QUESTIONS)}")
+print(f"\nRetrieval hit rate (top 5): {hits}/{len(QUESTIONS)}")
