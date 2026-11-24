@@ -22,6 +22,7 @@ QUESTIONS = [
 
 chunks, vectors = load_index()
 hits = 0
+hits3 = 0
 
 for question, page in QUESTIONS:
     results = search(question, chunks, vectors, top_k=5)
@@ -30,8 +31,9 @@ for question, page in QUESTIONS:
         for r in results
     )
     hits += ok
+    hits3 += any(r["source"] == SOURCE and r["page_start"] <= page <= r["page_end"] for r in results[:3])
     print(("OK   " if ok else "MISS ") + question)
     print("     expected", SOURCE, "p" + str(page), "| got",
           [f"{r['source'][:12]} p{r['page_start']}-{r['page_end']}" for r in results])
 
-print(f"\nRetrieval hit rate (top 5): {hits}/{len(QUESTIONS)}")
+print(f"\nTop 3: {hits3}/{len(QUESTIONS)} | Top 5: {hits}/{len(QUESTIONS)}")
