@@ -1,8 +1,10 @@
+import os
 import sys
 
 import streamlit as st
 
-sys.path.append("rag")
+BASE = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(BASE, "rag"))
 
 from generate import answer
 from store import load_index
@@ -12,19 +14,30 @@ REFUSAL = "I couldn't find that in the documents."
 
 st.set_page_config(page_title="Document Q&A", page_icon="📄")
 st.title("📄 Document Q&A")
-st.caption("Ask a question about your notes. Answers come only from the documents, with page citations.")
+st.caption("Ask a question about your documents. Answers come only from the documents, with page citations.")
 
 
-@st.cache_resource
+@st.cache_resource(show_spinner="Loading the built-in document...")
 def get_index():
-    return load_index()
+    # 1) a prebuilt index (your own computer)
+    try:
+        return load_index()
+    except FileNotFoundError:
+        pass
+    # 2) a small demo PDF shipped with the app (the cloud)
+    demo = os.path.join(BASE, "demo", "sample.pdf")
+    if os.path.exists(demo):
+        with open(demo, "rb") as f:
+            return index_uploaded_pdf(f.read(), "sample.pdf")
+    # 3) nothing built in: visitors upload their own PDF
+    return None, None
 
 
 try:
     base_chunks, base_vectors = get_index()
-except FileNotFoundError:
-    st.error("No index found. Run `python rag\\store.py` first.")
-    st.stop()
+except Exception as e:
+    base_chunks, base_vectors = None, None
+    st.warning("Could not load the built-in document (" + str(e)[:100] + "). You can still upload a PDF.")
 
 ss = st.session_state
 ss.setdefault("history", [])
@@ -52,15 +65,22 @@ with st.sidebar:
     if ss.uploaded:
         chunks, vectors = ss.uploaded["chunks"], ss.uploaded["vectors"]
         st.success("Using your PDF: " + ss.uploaded["name"])
-    else:
+    elif base_chunks is not None:
         chunks, vectors = base_chunks, base_vectors
-        st.write("Using the built-in course notes")
+        st.write("Using the built-in document(s)")
+    else:
+        chunks, vectors = None, None
 
-    st.write("Documents indexed:", len({c["source"] for c in chunks}))
-    st.write("Chunks:", len(chunks))
+    if chunks is not None:
+        st.write("Documents indexed:", len({c["source"] for c in chunks}))
+        st.write("Chunks:", len(chunks))
     if st.button("Clear chat"):
         ss.history = []
         st.rerun()
+
+if chunks is None:
+    st.info("👈 Upload a PDF in the sidebar to start asking questions.")
+    st.stop()
 
 
 def show_answer(text, sources):
@@ -77,7 +97,7 @@ for item in ss.history:
     with st.chat_message("assistant"):
         show_answer(item["a"], item["sources"])
 
-question = st.chat_input("Ask a question about your notes")
+question = st.chat_input("Ask a question about your documents")
 
 if question and question.strip():
     with st.chat_message("user"):
