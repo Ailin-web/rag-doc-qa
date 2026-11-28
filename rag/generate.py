@@ -13,8 +13,10 @@ client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 MODELS = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-3.7-flash"]
 
 PROMPT = """You answer questions using ONLY the context below.
-If the answer is not in the context, reply exactly: I couldn't find that in the documents.
-Keep the answer short and clear. Do not use outside knowledge.
+Use any information in the context that is relevant to the question, even if it only partly answers it or uses different words. Combine details from the context to explain.
+For "why", "how" or "compare" questions, answer by describing what the context says about the topic, even if it does not state a reason in so many words.
+Reply exactly: I couldn't find that in the documents. only when the context contains nothing relevant to the question.
+Include every relevant detail from the context, but keep the answer short and clear. Do not use outside knowledge.
 
 Context:
 {context}

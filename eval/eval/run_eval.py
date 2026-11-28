@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.join(ROOT, "rag"))
 from rag.store import load_index, search
 from rag.generate import answer
 
-PAUSE = 4  # seconds between questions, to be gentle on the free API quota
+PAUSE = 15  # seconds between questions, to be gentle on the free API quota
 
 
 def is_hit(chunk, source, pages):
